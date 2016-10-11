@@ -95,7 +95,7 @@ class RequestStats(object):
 
         return data
 
-    def get_request_stats_dataset(self):
+    def get_request_stats_dataset(self, ts = None):
         data = tablib.Dataset()
         data.headers = [
             "Method",
@@ -109,11 +109,13 @@ class RequestStats(object):
             "Average Content Size",
             "Requests/s",
         ]
+        if ts:
+          data.headers.insert(0, 'Timestamp')
 
         # Using iteritems() allows us to sort by the key while only using
         # the value.
         for _, stats in sorted(six.iteritems(self.entries)):
-            data.append((
+            stats = (
                 stats.method,
                 stats.name,
                 stats.num_requests,
@@ -124,10 +126,13 @@ class RequestStats(object):
                 stats.max_response_time,
                 stats.avg_content_length,
                 stats.total_rps,
-            ))
+            )
+            if ts:
+                stats = (ts,) + stats
+            data.append(stats)
 
         total = self.aggregated_stats(full_request_history=True)
-        data.append((
+        total = (
             total.method,
             total.name,
             total.num_requests,
@@ -138,7 +143,10 @@ class RequestStats(object):
             total.max_response_time,
             total.avg_content_length,
             total.total_rps,
-        ))
+        )
+        if ts:
+            total = (ts,) + total
+        data.append(total)
 
         return data
 

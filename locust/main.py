@@ -336,6 +336,22 @@ def write_stats_csv(file_prefix, timestamp=None):
         data = runners.locust_runner.stats.get_request_stats_dataset()
         file.write(data.csv)
 
+def write_time_stats_csv(file_prefix, timestamp=None):
+    if timestamp is None:
+        timestamp = time.time()
+
+    file_name = "{0}time_stats_{1}.csv".format(file_prefix, timestamp)
+    once = False
+    while True:
+        console_logger.info("Writing time request stats to %s", file_name)
+        with open(file_name, 'ab') as file:
+            data = runners.locust_runner.stats.get_request_stats_dataset(time.time())
+            if once:
+              data.headers = None
+            else:
+              once = True
+            file.write(data.csv)
+        gevent.sleep(2)
 
 def load_locustfile(path):
     """
@@ -468,6 +484,13 @@ def main():
     if not options.only_summary and (options.print_stats or (options.no_web and not options.slave)):
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
+
+        # time-based csv
+        if options.stats_prefix is not None:
+            file_prefix = os.path.expanduser(options.stats_prefix) + '_'
+        else:
+            file_prefix = ''
+        gevent.spawn(write_time_stats_csv, file_prefix, time.time())
     
     def shutdown(code=0):
         """
